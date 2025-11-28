@@ -40,6 +40,7 @@ export class YamuxStream extends AbstractStream {
   /** The number of available bytes to receive */
   private recvWindowCapacity: number
   private maxStreamWindowSize: number
+  private readonly initMaxMessageSize: number
 
   /**
    * An 'epoch' is the time it takes to process and read data
@@ -53,10 +54,10 @@ export class YamuxStream extends AbstractStream {
 
   constructor (init: YamuxStreamInit) {
     const initialWindowSize = init.initialStreamWindowSize ?? INITIAL_STREAM_WINDOW
-
+    const initMaxMessageSize = (init.maxMessageSize ?? initialWindowSize) - HEADER_LENGTH
     super({
       ...init,
-      maxMessageSize: initialWindowSize - HEADER_LENGTH
+      maxMessageSize: initMaxMessageSize
     })
 
     this.streamId = init.streamId
@@ -68,6 +69,7 @@ export class YamuxStream extends AbstractStream {
     this.epochStart = Date.now()
     this.getRTT = init.getRTT
     this.sendFrame = init.sendFrame
+    this.initMaxMessageSize = initMaxMessageSize
 
     const setStateToFinishedOnCloseListener = (): void => {
       this.state = StreamState.Finished
@@ -184,7 +186,7 @@ export class YamuxStream extends AbstractStream {
     this.sendWindowCapacity += frame.header.length
 
     // change the chunk size the superclass uses
-    this.maxMessageSize = this.sendWindowCapacity - HEADER_LENGTH
+    this.maxMessageSize = Math.min(this.sendWindowCapacity - HEADER_LENGTH, this.initMaxMessageSize)
 
     if (this.maxMessageSize < 0) {
       this.maxMessageSize = 0

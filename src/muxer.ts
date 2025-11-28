@@ -92,6 +92,7 @@ export class YamuxMuxer extends AbstractStreamMuxer<YamuxStream> {
   private keepAliveInterval: number
   private maxInboundStreams: number
   private maxOutboundStreams: number
+  private maxMessageSize?: number
 
   constructor (maConn: MessageStream, init: YamuxMuxerInit = {}) {
     super(maConn, {
@@ -107,6 +108,7 @@ export class YamuxMuxer extends AbstractStreamMuxer<YamuxStream> {
     this.keepAliveInterval = init.keepAliveInterval ?? defaultConfig.keepAliveInterval
     this.maxInboundStreams = init.maxInboundStreams ?? defaultConfig.maxInboundStreams
     this.maxOutboundStreams = init.maxOutboundStreams ?? defaultConfig.maxOutboundStreams
+    this.maxMessageSize = init.maxMessageSize
 
     this.decoder = new Decoder()
 
@@ -299,7 +301,8 @@ export class YamuxMuxer extends AbstractStreamMuxer<YamuxStream> {
       direction,
       sendFrame: this.sendFrame.bind(this),
       log: this.log.newScope(`${direction}:${streamId}`),
-      getRTT: this.getRTT.bind(this)
+      getRTT: this.getRTT.bind(this),
+      maxMessageSize: this.maxMessageSize
     })
 
     stream.addEventListener('close', () => {
